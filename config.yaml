@@ -1,0 +1,30 @@
+name: btc_predictor
+version: 1.0.0
+description: BTC价格预测器 - 支持增量学习和实时预测
+
+commands:
+  update:
+    description: 更新BTC历史数据
+    usage: btc_predictor update
+    
+  train:
+    description: 训练/增量学习模型
+    usage: btc_predictor train [--steps 1000] [--lr 1e-4]
+    
+  predict:
+    description: 预测BTC 24小时后价格
+    usage: btc_predictor predict
+    
+schedule:
+  # 每天00:01自动更新数据并训练
+  daily_update:
+    cron: "1 0 * * *"
+    command: update && train --steps 500
+
+requirements:
+  - python3
+  - numpy
+  - requests
+
+author: OpenClaw
+homepage: https://github.com/openclaw/skills
