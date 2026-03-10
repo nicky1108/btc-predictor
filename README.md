@@ -1,115 +1,92 @@
-# BTC Price Predictor Skill for OpenClaw
+# BTC Price Predictor for OpenClaw
 
-一个用于 BTC 价格预测的 OpenClaw Skill，支持自动数据更新、增量学习和实时预测。
+使用12层Transformer模型进行BTC价格预测的OpenClaw Skill。
 
 ## 🎯 功能特性
 
-- **📊 自动数据更新**：每天 00:01 自动从 Binance 获取最新 BTC 数据
-- **🧠 增量学习**：支持增量训练，模型会不断学习新数据
-- **🔮 实时预测**：预测 BTC 24 小时后的价格走势
-- **📈 交易信号**：自动生成 BUY/SELL/HOLD 信号和置信度
+- **🤖 12层Transformer模型**: 630万参数的大型时间序列预测模型
+- **📊 实时预测**: 预测BTC 24小时后的价格走势
+- **📈 交易信号**: 自动生成 BUY/SELL/HOLD 信号和置信度
+- **🔄 自动更新**: 每天自动更新数据和模型
 
 ## 📁 目录结构
 
 ```
-~/.openclaw/skills/btc_predictor/
-├── config.yaml          # 配置文件
-├── install.sh           # 安装脚本
-├── cron_job.sh          # 定时任务脚本
-├── predict_simple_live.py  # 推荐预测脚本
-├── src/
-│   └── main.py          # 主程序
-├── models/              # 模型目录 (含训练好的模型)
-└── logs/               # 日志目录
+btc_predictor/
+├── SKILL.md                    # OpenClaw Skill定义
+├── mcp_server.py               # MCP服务器 (JSON-RPC)
+├── predict_transformer.py       # Transformer模型推理
+├── predict_simple_live.py      # 简化版预测
+├── models/
+│   └── btc_transformer_step1000000.ckpt  # 训练好的Transformer模型
+└── data/                       # 数据目录
 ```
 
 ## 🚀 安装
 
 ```bash
-cd ~/.openclaw/skills/btc_predictor
-./install.sh
+# 克隆到OpenClaw Skills目录
+git clone https://github.com/nicky1108/btc-predictor.git ~/.openclaw/skills/btc_predictor
 ```
-
-安装脚本会自动：
-1. 安装 Python 依赖 (numpy, requests)
-2. 设置定时任务 (每天 00:01)
-3. 下载初始数据
-4. 训练初始模型
 
 ## 💻 使用方法
 
-### 1. 获取预测（推荐）
+### OpenClaw中使用
+
+在OpenClaw对话中直接调用：
+
+```
+帮我预测一下BTC明天的价格
+```
+
+OpenClaw会自动调用`btc_predict`工具返回预测结果。
+
+### 命令行使用
 
 ```bash
-python3 ~/.openclaw/skills/btc_predictor/predict_simple_live.py
+# 使用Transformer模型预测
+python3 ~/.openclaw/skills/btc_predictor/predict_transformer.py
 ```
 
 输出示例：
 ```
-======================================================================
-🚀 BTC实时价格预测 (Live)
-======================================================================
+============================================================
+BTC Transformer Prediction (OpenClaw Skill)
+============================================================
 
-📡 从Binance获取实时数据...
-✅ 获取到 300 条1小时K线
-💰 当前BTC价格: $70,439.52
+📥 Loading model...
+✓ Model: 12 layers, step=1000000, loss=0.001257
 
-📊 当前市场指标:
-  returns        : +0.741%
-  rsi            : 61.4
-  ma24           : 1.0115
+📡 Fetching data...
+✓ Got 300 candles
 
-======================================================================
-📈 预测结果
-======================================================================
+🔮 Running transformer...
 
-  💰 当前价格: $70,439.52
-  🔮 24h后预测: $84,036.99
-  📊 预期收益: +19.304%
+============================================================
+📈 PREDICTION RESULTS
+============================================================
 
-  🚀 交易信号: STRONG_BUY
-  🟢 置信度: 95.0%
+  💰 Current Price: $71,072.54
+  🔮 24h Prediction: $71,072.70
+  📊 Expected Return: +0.00%
 
-======================================================================
+  Signal: HOLD (confidence: 50%)
 ```
 
-### 2. 手动更新数据
+## 🧠 模型信息
 
-```bash
-btc_predictor update
-```
-
-### 3. 手动训练模型
-
-```bash
-# 使用默认参数训练
-btc_predictor train
-
-# 自定义训练参数
-btc_predictor train --steps 2000 --lr 1e-4
-```
-
-## 📊 模型性能
-
-### 当前模型
-
-| 指标 | 值 |
+| 项目 | 值 |
 |------|-----|
-| 训练数据 | 2017-2026 (70,645 样本) |
-| 数据类型 | 1小时 K线 |
-| 序列长度 | 256 小时 (约10.7天) |
-| 特征数 | 13 |
-| 模型类型 | 时间加权序列回归 |
+| **架构** | 12层Transformer |
+| **维度(DIM)** | 256 |
+| **隐藏层** | 1024 |
+| **注意力头数** | 8 |
+| **序列长度** | 256 |
+| **参数量** | ~630万 |
+| **训练步数** | 1,000,000 |
+| **训练损失** | 0.001257 |
 
-### 测试指标
-
-| 指标 | 值 |
-|------|-----|
-| MAE | 1.73% |
-| RMSE | 2.58% |
-| 方向准确率 | 51.0% |
-
-### 特征列表
+### 特征列表 (13个)
 
 1. `returns` - 收益率
 2. `log_returns` - 对数收益率
@@ -125,19 +102,20 @@ btc_predictor train --steps 2000 --lr 1e-4
 12. `close_position` - 收盘位置
 13. `trend_6h` - 6小时趋势
 
-## ⏰ 定时任务
+## 📊 训练数据
 
-默认每天 00:01 自动执行：
+- **数据源**: Binance BTC/USDT 1小时K线
+- **时间范围**: 2018-2026
+- **样本数**: ~70,000
 
-```cron
-1 0 * * * /Users/nicky/.openclaw/skills/btc_predictor/cron_job.sh
-```
+## 🔧 MCP工具
 
-任务流程：
-1. 从 Binance 获取最新 1h K线数据
-2. 计算技术指标 (RSI, MA, 波动率等)
-3. 增量训练模型
-4. 保存更新后的模型
+OpenClaw提供以下MCP工具：
+
+| 工具名 | 描述 |
+|--------|------|
+| `btc_predict` | BTC价格预测 |
+| `btc_trading_advice` | 交易建议 |
 
 ## ⚠️ 免责声明
 
@@ -145,17 +123,7 @@ btc_predictor train --steps 2000 --lr 1e-4
 
 - 加密货币交易风险极高，请谨慎投资
 - 历史表现不代表未来收益
-- 模型预测准确率约 51%，接近随机猜测
-
-## 🎓 技术细节
-
-- **算法**：时间加权线性回归
-- **模型架构**：
-  - 输入：256个时间步 × 13特征
-  - 时间权重：指数衰减 (衰减因子50)
-  - 输出：24小时后收益率
-- **优化器**：SGD + Momentum
-- **训练环境**：NumPy (CPU)
+- 模型预测仅供参考
 
 ## 📄 License
 
