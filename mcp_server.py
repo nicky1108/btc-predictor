@@ -16,10 +16,10 @@ def predict_btc():
     """运行预测并返回结构化结果"""
     try:
         result = subprocess.run(
-            ["python3", str(SKILL_DIR / "predict_transformer.py")],
+            ["python3", str(SKILL_DIR / "predict_new.py")],
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=60,
         )
 
         if result.returncode != 0:
