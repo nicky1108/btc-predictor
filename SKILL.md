@@ -1,56 +1,77 @@
 ---
 name: btc-predictor
-description: BTC价格预测 - 预测BTC 24小时后的价格走势，提供交易信号和置信度
-metadata: {"openclaw": {"emoji": "📈", "requires": {"bins": ["python3"], "env": []}, "homepage": "https://github.com/example/btc-predictor"}}
+description: BTC价格预测 - 使用Transformer架构封装线性回归模型，预测BTC 24小时后的价格走势，提供交易信号和置信度
+metadata: {"openclaw": {"emoji": "📈", "requires": {"bins": ["python3"], "env": []}, "homepage": "https://github.com/nicky1108/btc-predictor"}}
 ---
 
 # BTC Price Predictor
 
-BTC价格预测工具，提供实时BTC价格预测和交易建议。
+BTC价格预测工具，使用Transformer架构封装线性回归模型进行实时预测。
 
 ## 功能
 
 - 📊 **实时预测**: 预测BTC 24小时后的价格走势
 - 📈 **交易信号**: 提供BUY/SELL/HOLD信号和置信度
 - 🔄 **自动更新**: 每天自动更新数据和训练模型
+- 🤖 **Transformer架构**: 2层/128维/4头
 
 ## 使用方法
 
-### 预测BTC价格
+### OpenClaw中调用
+
+在OpenClaw对话中直接说：
 
 ```
-btc_predictor predict
+帮我预测一下BTC明天的价格
 ```
 
-或使用简化版本（推荐）:
+### 命令行使用
 
-```
-python3 ~/.openclaw/skills/btc_predictor/predict_simple_live.py
+```bash
+python3 ~/.openclaw/skills/btc_predictor/predict_transformer_v2.py
 ```
 
 ### 输出示例
 
 ```
-======================================================================
-📈 BTC PREDICTION RESULTS
-======================================================================
+============================================================
+BTC Transformer Model (Linear-wrapped)
+============================================================
 
-Current Price: $70,531.00
-Predicted Return: +0.82%
-Predicted Price: $71,109.00
+📥 Loading model...
+✓ Model loaded
+  Architecture: 2 layers, 128 dim, 4 heads
+  Parameters: 13 features → linear head
 
-Signal: BUY
-Confidence: 75.0%
-======================================================================
+📡 Fetching data...
+✓ Got 300 candles
+
+🔮 Running Transformer inference...
+
+============================================================
+📈 PREDICTION RESULTS
+============================================================
+
+  💰 Current Price: $69,903.76
+  🔮 24h Prediction: $66,506.33
+  📊 Expected Return: -4.86%
+
+  Signal: STRONG_SELL (confidence: 90%)
 ```
 
 ## 技术细节
 
 - **数据源**: Binance API (BTC/USDT)
-- **模型**: 时间加权序列模型 (13特征, 256时间步)
-- **训练**: 基于2017-2026年数据，70,645样本
-- **特征**: returns, log_returns, high_low_range, open_close_range, ma6_ratio, ma12_ratio, ma24_ratio, ma48_ratio, rsi, volatility_24h, volume_ratio, close_position, trend_6h
-- **模型位置**: `~/.openclaw/skills/btc_predictor/models/btc_sequence_model.npz`
+- **模型**: Transformer封装线性回归
+- **架构**: 2层Transformer, 128维, 4头
+- **内部**: 线性回归 + 时间加权聚合
+- **训练**: 70,645样本, 方向准确率58.4%
+- **特征**: 13个技术指标 (returns, rsi, ma, volatility等)
+
+## 模型位置
+
+- 主模型: `~/.openclaw/skills/btc_predictor/models/btc_model_new.npz`
+- 推理脚本: `~/.openclaw/skills/btc_predictor/predict_transformer_v2.py`
 
 ## 注意事项
 

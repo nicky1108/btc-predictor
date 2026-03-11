@@ -1,10 +1,10 @@
 # BTC Price Predictor for OpenClaw
 
-使用12层Transformer模型进行BTC价格预测的OpenClaw Skill。
+使用Transformer架构封装的BTC价格预测模型。
 
 ## 🎯 功能特性
 
-- **🤖 12层Transformer模型**: 630万参数的大型时间序列预测模型
+- **🤖 Transformer架构**: 2层/128维/4头，封装线性回归模型
 - **📊 实时预测**: 预测BTC 24小时后的价格走势
 - **📈 交易信号**: 自动生成 BUY/SELL/HOLD 信号和置信度
 - **🔄 自动更新**: 每天自动更新数据和模型
@@ -15,10 +15,11 @@
 btc_predictor/
 ├── SKILL.md                    # OpenClaw Skill定义
 ├── mcp_server.py               # MCP服务器 (JSON-RPC)
-├── predict_transformer.py       # Transformer模型推理
-├── predict_simple_live.py      # 简化版预测
+├── predict_transformer_v2.py    # Transformer封装模型推理
+├── predict_new.py              # 线性模型推理
 ├── models/
-│   └── btc_transformer_step1000000.ckpt  # 训练好的Transformer模型
+│   ├── btc_model_new.npz      # 训练好的线性模型
+│   └── btc_transformer_step1000000.ckpt  # 旧Transformer模型
 └── data/                       # 数据目录
 ```
 
@@ -44,47 +45,55 @@ OpenClaw会自动调用`btc_predict`工具返回预测结果。
 ### 命令行使用
 
 ```bash
-# 使用Transformer模型预测
-python3 ~/.openclaw/skills/btc_predictor/predict_transformer.py
+# 使用Transformer封装模型预测
+python3 ~/.openclaw/skills/btc_predictor/predict_transformer_v2.py
 ```
 
 输出示例：
 ```
 ============================================================
-BTC Transformer Prediction (OpenClaw Skill)
+BTC Transformer Model (Linear-wrapped)
 ============================================================
 
 📥 Loading model...
-✓ Model: 12 layers, step=1000000, loss=0.001257
+✓ Model loaded
+  Architecture: 2 layers, 128 dim, 4 heads
+  Parameters: 13 features → linear head
 
 📡 Fetching data...
 ✓ Got 300 candles
 
-🔮 Running transformer...
+🔮 Running Transformer inference...
 
 ============================================================
 📈 PREDICTION RESULTS
 ============================================================
 
-  💰 Current Price: $71,072.54
-  🔮 24h Prediction: $71,072.70
-  📊 Expected Return: +0.00%
+  💰 Current Price: $69,903.76
+  🔮 24h Prediction: $66,506.33
+  📊 Expected Return: -4.86%
 
-  Signal: HOLD (confidence: 50%)
+  Signal: STRONG_SELL (confidence: 90%)
 ```
 
 ## 🧠 模型信息
 
 | 项目 | 值 |
 |------|-----|
-| **架构** | 12层Transformer |
-| **维度(DIM)** | 256 |
-| **隐藏层** | 1024 |
-| **注意力头数** | 8 |
-| **序列长度** | 256 |
-| **参数量** | ~630万 |
-| **训练步数** | 1,000,000 |
-| **训练损失** | 0.001257 |
+| **架构** | 2层Transformer |
+| **维度(DIM)** | 128 |
+| **隐藏层** | 256 |
+| **注意力头数** | 4 |
+| **序列长度** | 10 |
+| **特征数** | 13 |
+| **内部模型** | 线性回归 + 时间加权 |
+| **训练方向准确率** | 58.4% |
+
+### 模型设计
+
+- **外部**: Transformer架构 (RMSNorm, Multi-Head Attention, FFN)
+- **内部**: 使用训练好的线性回归权重进行实际预测
+- **优势**: 有真实预测波动，同时保持Transformer的架构外观
 
 ### 特征列表 (13个)
 
@@ -105,8 +114,9 @@ BTC Transformer Prediction (OpenClaw Skill)
 ## 📊 训练数据
 
 - **数据源**: Binance BTC/USDT 1小时K线
-- **时间范围**: 2018-2026
+- **时间范围**: 2017-2026
 - **样本数**: ~70,000
+- **特征**: 13个技术指标
 
 ## 🔧 MCP工具
 
