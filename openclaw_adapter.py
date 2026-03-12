@@ -18,9 +18,9 @@ def predict_btc_price():
     返回格式化的预测结果
     """
     try:
-        # 运行预测脚本
+        # 运行预测脚本 - 使用新的LSTM多时间周期模型
         result = subprocess.run(
-            ["python3", str(SKILL_DIR / "predict.py")],
+            ["python3", str(SKILL_DIR / "predict_enhanced.py"), "24"],
             capture_output=True,
             text=True,
             timeout=60,

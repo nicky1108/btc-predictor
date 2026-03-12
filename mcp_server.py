@@ -50,8 +50,10 @@ def format_markdown(result):
     signal_emoji = {
         "STRONG_BUY": "🚀",
         "BUY": "📈",
+        "buy": "📈",
         "HOLD": "➡️",
         "SELL": "📉",
+        "sell": "📉",
         "STRONG_SELL": "🔴",
     }.get(signal, "❓")
 
@@ -64,10 +66,7 @@ def format_markdown(result):
 📊 **预测收益**: {ret:+.2f}%
 
 🏷️ **交易信号**: {signal}
-{conf_color} **置信度**: {confidence:.1f}%
-
----
-📅 更新时间: {result["timestamp"]}
+{conf_color} **置信度**: {confidence:.1f}% (历史准确率: {result.get("direction_accuracy", "N/A")}%)
 """
 
 
