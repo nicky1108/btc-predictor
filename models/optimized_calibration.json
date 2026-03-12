@@ -1,0 +1,6 @@
+{
+  "6": {"mse": 0.000928, "mae": 0.024074, "direction_accuracy": 0.547},
+  "24": {"mse": 0.000894, "mae": 0.023761, "direction_accuracy": 0.531},
+  "48": {"mse": 0.000876, "mae": 0.023459, "direction_accuracy": 0.586},
+  "168": {"mse": 0.000918, "mae": 0.023988, "direction_accuracy": 0.574}
+}

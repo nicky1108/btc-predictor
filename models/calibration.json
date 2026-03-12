@@ -1,0 +1,26 @@
+{
+  "6": {
+    "mse": 0.0002792927552945912,
+    "direction_accuracy": 0.5926765475152573,
+    "confidence_scale": 1.1853530950305147,
+    "model_path": "/Users/nicky/.openclaw/skills/btc_predictor/models/btc_lstm_h6.pt"
+  },
+  "24": {
+    "mse": 0.0002763141819741577,
+    "direction_accuracy": 0.5548910200523103,
+    "confidence_scale": 1.1097820401046206,
+    "model_path": "/Users/nicky/.openclaw/skills/btc_predictor/models/btc_lstm_h24.pt"
+  },
+  "48": {
+    "mse": 0.000248623953666538,
+    "direction_accuracy": 0.6045510026155189,
+    "confidence_scale": 1.2091020052310377,
+    "model_path": "/Users/nicky/.openclaw/skills/btc_predictor/models/btc_lstm_h48.pt"
+  },
+  "168": {
+    "mse": 0.00020207725174259394,
+    "direction_accuracy": 0.5927288578901482,
+    "confidence_scale": 1.1854577157802964,
+    "model_path": "/Users/nicky/.openclaw/skills/btc_predictor/models/btc_lstm_h168.pt"
+  }
+}

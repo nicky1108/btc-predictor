@@ -1,13 +1,14 @@
 # BTC Price Predictor for OpenClaw
 
-使用Transformer架构封装的BTC价格预测模型。
+使用双向LSTM + 多时间周期融合的BTC价格预测模型。
 
 ## 🎯 功能特性
 
-- **🤖 Transformer架构**: 2层/128维/4头，封装线性回归模型
-- **📊 实时预测**: 预测BTC 24小时后的价格走势
-- **📈 交易信号**: 自动生成 BUY/SELL/HOLD 信号和置信度
-- **🔄 自动更新**: 每天自动更新数据和模型
+- **🤖 LSTM架构**: 双向LSTM (2层, 32 hidden, dropout=0.2)
+- **📊 多时间周期**: 融合1h + 4h + 1d三级时间周期特征
+- **📈 22技术指标**: RSI, MACD, Bollinger Bands, ATR, OBV等
+- **🔮 多周期预测**: 支持 6h / 24h / 48h / 168h 预测
+- **📊 置信度校准**: 基于验证集真实准确率
 
 ## 📁 目录结构
 
@@ -15,12 +16,18 @@
 btc_predictor/
 ├── SKILL.md                    # OpenClaw Skill定义
 ├── mcp_server.py               # MCP服务器 (JSON-RPC)
-├── predict_transformer_v2.py    # Transformer封装模型推理
-├── predict_new.py              # 线性模型推理
+├── predict_enhanced.py         # 增强版LSTM预测 (推荐)
+├── predict_lstm.py             # 基础LSTM预测
+├── predict_transformer_v2.py   # 旧Transformer封装模型
+├── train_*.py                  # 训练脚本
 ├── models/
-│   ├── btc_model_new.npz      # 训练好的线性模型
-│   └── btc_transformer_step1000000.ckpt  # 旧Transformer模型
-└── data/                       # 数据目录
+│   ├── btc_lstm_h6.pt        # 6小时预测模型
+│   ├── btc_lstm_h24.pt       # 24小时预测模型
+│   ├── btc_lstm_h48.pt       # 48小时预测模型
+│   ├── btc_lstm_h168.pt      # 168小时(7天)预测模型
+│   ├── calibration.json       # 校准数据
+│   └── btc_model_new.npz     # 旧线性模型
+└── logs/                      # 训练日志
 ```
 
 ## 🚀 安装
@@ -40,83 +47,96 @@ git clone https://github.com/nicky1108/btc-predictor.git ~/.openclaw/skills/btc_
 帮我预测一下BTC明天的价格
 ```
 
-OpenClaw会自动调用`btc_predict`工具返回预测结果。
-
 ### 命令行使用
 
 ```bash
-# 使用Transformer封装模型预测
-python3 ~/.openclaw/skills/btc_predictor/predict_transformer_v2.py
+# 使用增强版LSTM模型预测 (推荐)
+python3 ~/.openclaw/skills/btc_predictor/predict_enhanced.py 24
+
+# 预测多个周期
+python3 ~/.openclaw/skills/btc_predictor/predict_enhanced.py 6   # 6小时
+python3 ~/.openclaw/skills/btc_predictor/predict_enhanced.py 24  # 24小时
+python3 ~/.openclaw/skills/btc_predictor/predict_enhanced.py 48  # 48小时
+python3 ~/.openclaw/skills/btc_predictor/predict_enhanced.py 168 # 7天
 ```
 
 输出示例：
 ```
-============================================================
-BTC Transformer Model (Linear-wrapped)
-============================================================
+Fetching data for 24h prediction...
+Calculating features...
+Loading model: btc_lstm_h24.pt
 
-📥 Loading model...
-✓ Model loaded
-  Architecture: 2 layers, 128 dim, 4 heads
-  Parameters: 13 features → linear head
-
-📡 Fetching data...
-✓ Got 300 candles
-
-🔮 Running Transformer inference...
-
-============================================================
-📈 PREDICTION RESULTS
-============================================================
-
-  💰 Current Price: $69,903.76
-  🔮 24h Prediction: $66,506.33
-  📊 Expected Return: -4.86%
-
-  Signal: STRONG_SELL (confidence: 90%)
+==================================================
+当前价格: $69,452.02
+预测 (24h): $69,730.23 (+0.40%)
+信号: BUY
+置信度: 56.3% (方向准确率: 55.5%)
+==================================================
 ```
 
 ## 🧠 模型信息
 
+### 性能对比
+
+| 周期 | 方向准确率 | MSE |
+|------|-----------|-----|
+| 6h | **59.3%** | 0.000279 |
+| 24h | 55.5% | 0.000276 |
+| 48h | **60.5%** | 0.000249 |
+| 168h (7天) | 59.3% | 0.000202 |
+
+### 模型架构
+
 | 项目 | 值 |
 |------|-----|
-| **架构** | 2层Transformer |
-| **维度(DIM)** | 128 |
-| **隐藏层** | 256 |
-| **注意力头数** | 4 |
-| **序列长度** | 10 |
-| **特征数** | 13 |
-| **内部模型** | 线性回归 + 时间加权 |
-| **训练方向准确率** | 58.4% |
+| **架构** | 双向LSTM |
+| **层数** | 2 |
+| **Hidden Size** | 32 |
+| **Dropout** | 0.2 |
+| **特征维度** | 66 (22 × 3时间周期) |
+| **序列长度** | 48 |
+| **正则化** | Weight Decay (1e-4) |
 
-### 模型设计
-
-- **外部**: Transformer架构 (RMSNorm, Multi-Head Attention, FFN)
-- **内部**: 使用训练好的线性回归权重进行实际预测
-- **优势**: 有真实预测波动，同时保持Transformer的架构外观
-
-### 特征列表 (13个)
+### 特征列表 (22个)
 
 1. `returns` - 收益率
 2. `log_returns` - 对数收益率
 3. `high_low_range` - 最高最低价范围
-4. `open_close_range` - 开收盘价范围
-5. `ma6_ratio` - 6小时均线比率
-6. `ma12_ratio` - 12小时均线比率
-7. `ma24_ratio` - 24小时均线比率
-8. `ma48_ratio` - 48小时均线比率
-9. `rsi` - 相对强弱指数
-10. `volatility_24h` - 24小时波动率
-11. `volume_ratio` - 成交量比率
-12. `close_position` - 收盘位置
-13. `trend_6h` - 6小时趋势
+4. `close_position` - 收盘位置
+5. `sma_5_ratio` - 5周期均线比率
+6. `sma_10_ratio` - 10周期均线比率
+7. `sma_20_ratio` - 20周期均线比率
+8. `sma_50_ratio` - 50周期均线比率
+9. `rsi_14` - 14周期RSI
+10. `rsi_7` - 7周期RSI
+11. `macd` - MACD
+12. `macd_signal` - MACD信号线
+13. `macd_hist` - MACD柱状图
+14. `bb_position` - Bollinger Bands位置
+15. `atr_ratio` - ATR比率
+16. `volume_ratio` - 成交量比率
+17. `obv_change` - OBV变化
+18. `stoch_k` - Stochastic %K
+19. `adx` - ADX趋势指标
+20. `volatility_20` - 20周期波动率
+21. `momentum_5` - 5周期动量
+22. `momentum_10` - 10周期动量
+
+### 多时间周期融合
+
+- **1小时数据**: 主时间序列
+- **4小时数据**: 中期趋势特征
+- **1天数据**: 长期趋势特征
+
+每个时间周期贡献22个特征，总计66维输入。
 
 ## 📊 训练数据
 
-- **数据源**: Binance BTC/USDT 1小时K线
+- **数据源**: Binance BTC/USDT
+- **时间周期**: 1h / 4h / 1d
 - **时间范围**: 2017-2026
-- **样本数**: ~70,000
-- **特征**: 13个技术指标
+- **样本数**: ~1000 (用于训练)
+- **验证方式**: 5折交叉验证
 
 ## 🔧 MCP工具
 
@@ -126,6 +146,14 @@ OpenClaw提供以下MCP工具：
 |--------|------|
 | `btc_predict` | BTC价格预测 |
 | `btc_trading_advice` | 交易建议 |
+
+## 📈 版本历史
+
+- **v2.0** (2024-03): 双向LSTM + 多时间周期融合
+  - 22技术指标 × 3时间周期 = 66维特征
+  - 多周期预测支持 (6h/24h/48h/168h)
+  - 置信度基于验证集校准
+- **v1.0** (早期): Transformer封装线性模型
 
 ## ⚠️ 免责声明
 
